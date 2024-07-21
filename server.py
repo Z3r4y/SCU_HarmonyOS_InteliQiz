@@ -12,7 +12,7 @@ pymysql.install_as_MySQLdb()
 app = Flask(__name__)
 
 # 配置MySQL数据库连接
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:my-secret-pw@124.222.136.33/xhs'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:my-secret-pw@124.222.136.33/qiz'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
@@ -24,121 +24,46 @@ class ResponseData:
         self.data = data
 
 
+class QuestionModel(db.Model):
+    __tablename__ = 'questions'
+    id = db.Column(db.Integer, primary_key=True)
+    question = db.Column(db.String(255))
+    option_a = db.Column(db.String(255))
+    option_b = db.Column(db.String(255))
+    correct_option = db.Column(db.String(1))
+    explanation = db.Column(db.String(255))
+    image_url = db.Column(db.String(255))  # 新增图片URL属性
+
+    def __init__(self, question, option_a, option_b, correct_option, explanation, image_url):
+        self.question = question
+        self.option_a = option_a
+        self.option_b = option_b
+        self.correct_option = correct_option
+        self.explanation = explanation
+        self.image_url = image_url
+
+
+
 class UserModel(db.Model):
     __tablename__ = 'users'
     uid = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80))
-    user_number = db.Column(db.String(20))
-    description = db.Column(db.String(255))
-    following = db.Column(db.Integer)
-    followers = db.Column(db.Integer)
-    likes = db.Column(db.Integer)
     userphone = db.Column(db.String(20))
     password = db.Column(db.String(80))
+    score = db.Column(db.Integer, default=0)
     token = db.Column(db.String(255), nullable=True)
+    trueNumber = db.Column(db.Integer, default=0)
+    rate = db.Column(db.Float, default=0.0)
 
-    def __init__(self, username, password, userphone, user_number=None, description=None, following=0, followers=0, likes=0, token=None):
+    def __init__(self, username, password, userphone, score=0, trueNumber=0, rate=0.0, token=None):
         self.username = username
         self.password = password
         self.userphone = userphone
-        self.user_number = user_number
-        self.description = description
-        self.following = following
-        self.followers = followers
-        self.likes = likes
+        self.score = score
+        self.trueNumber = trueNumber
+        self.rate = rate
         self.token = token
 
-
-
-class HistoryModel(db.Model):
-    __tablename__ = 'history'
-    id = db.Column(db.Integer, primary_key=True)
-    content = db.Column(db.String(255))
-
-    def __init__(self, content):
-        self.content = content
-
-
-class SuggestionModel(db.Model):
-    __tablename__ = 'suggestions'
-    id = db.Column(db.Integer, primary_key=True)
-    suggestion = db.Column(db.String(255))
-
-    def __init__(self, suggestion):
-        self.suggestion = suggestion
-
-
-class HotTopicModel(db.Model):
-    __tablename__ = 'hottopics'
-    id = db.Column(db.Integer, primary_key=True)
-    rank = db.Column(db.Integer)
-    title = db.Column(db.String(255))
-    views = db.Column(db.String(255))
-    isHot = db.Column(db.Boolean)
-
-    def __init__(self, rank, title, views, isHot):
-        self.rank = rank
-        self.title = title
-        self.views = views
-        self.isHot = isHot
-
-
-class ItemModel(db.Model):
-    __tablename__ = 'items'
-    id = db.Column(db.Integer, primary_key=True)
-    item = db.Column(db.String(255))
-
-    def __init__(self, item):
-        self.item = item
-
-class PostModel(db.Model):
-    __tablename__ = 'posts'
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(255))
-    author = db.Column(db.String(255))
-    image_url = db.Column(db.String(255))
-
-    def __init__(self, title, author, image_url):
-        self.title = title
-        self.author = author
-        self.image_url = image_url
-
-class FocusModel(db.Model):
-    __tablename__ = 'focus'
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(255))
-    author = db.Column(db.String(255))
-    image_url = db.Column(db.String(255))
-
-    def __init__(self, title, author, image_url):
-        self.title = title
-        self.author = author
-        self.image_url = image_url
-
-class AroundModel(db.Model):
-    __tablename__ = 'around'
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(255))
-    author = db.Column(db.String(255))
-    image_url = db.Column(db.String(255))
-
-    def __init__(self, title, author, image_url):
-        self.title = title
-        self.author = author
-        self.image_url = image_url
-
-
-class FriendModel(db.Model):
-    __tablename__ = 'friends'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(80))
-    description = db.Column(db.String(255))
-    image = db.Column(db.String(255))
-
-    def __init__(self, name, description, image):
-        self.name = name
-        self.description = description
-        self.image = image
 
 
 def generate_captcha():
@@ -248,98 +173,105 @@ def generate_token(uid):
     return base64.b64encode(f'token-{uid}'.encode()).decode()
 
 
-@app.route('/user/profile', methods=['GET'])
-def get_user_profile():
-    token = request.args.get('token')
-    user_id = get_user_id_from_token(token)
-    user = UserModel.query.filter_by(uid=user_id).first()
-
-    if user:
-        response_data = ResponseData(code=0, msg='Success', data={
-            'username': user.username,
-            'user_number': user.user_number,
-            'description': user.description,
-            'following': user.following,
-            'followers': user.followers,
-            'likes': user.likes
-        })
+@app.route('/api/question', methods=['GET'])
+def get_question():
+    page = request.args.get('page', 1, type=int)
+    per_page = 1
+    pagination = QuestionModel.query.paginate(page=page, per_page=per_page, error_out=False)
+    if pagination.items:
+        question = pagination.items[0]
+        question_data = {
+            'id': question.id,
+            'question': question.question,
+            'option_a': question.option_a,
+            'option_b': question.option_b,
+            'correct_option': question.correct_option,
+            'explanation': question.explanation,
+            'image_url': question.image_url
+        }
+        response_data = ResponseData(code=0, msg='Registration successful', data=question_data)
+        return jsonify(response_data.__dict__), 200
     else:
-        response_data = ResponseData(code=1, msg='User not found')
+        return jsonify({'message': 'No more questions'}), 404
 
-    return jsonify(response_data.__dict__)
 
-def get_user_id_from_token(token):
-    # 解析 token 获取用户 ID 的逻辑
-    decoded_token = base64.b64decode(token).decode()
-    uid = int(decoded_token.split('-')[1])
-    return uid
+@app.route('/api/question/answer', methods=['POST'])
+def answer_question():
+    data = request.json
+    userphone = data.get('userphone')
+    answer = data.get('answer')
+    question_id = data.get('question_id')
 
-@app.route('/content/history', methods=['GET'])
-def get_history():
-    history_records = HistoryModel.query.all()
-    history_data = [{'id': record.id, 'content': record.content} for record in history_records]
+    user = UserModel.query.filter_by(userphone=userphone).first()
+    question = db.session.get(QuestionModel, question_id)
 
-    response_data = ResponseData(code=0, msg='Success', data=history_data)
-    return jsonify(response_data.__dict__)
+    if user and question:
+        if answer == question.correct_option:
+            user.trueNumber += 1
+            user.score += 10
+            user.rate = user.score/100
 
-@app.route('/content/suggestions', methods=['GET'])
-def get_suggestions():
-    suggestions = SuggestionModel.query.all()
-    suggestions_data = [{'id': suggestion.id, 'suggestion': suggestion.suggestion} for suggestion in suggestions]
+        db.session.commit()
 
-    response_data = ResponseData(code=0, msg='Success', data=suggestions_data)
-    return jsonify(response_data.__dict__)
+        response_data = ResponseData(code=0, msg='Answer submitted successfully', data={
+            'trueNumber': user.trueNumber,
+            'score': user.score
+        })
+        return jsonify(response_data.__dict__), 200
+    else:
+        response_data = ResponseData(code=1, msg='Invalid user or question')
+        return jsonify(response_data.__dict__), 404
 
-@app.route('/content/hottopics', methods=['GET'])
-def get_hottopics():
-    hot_topics = HotTopicModel.query.all()
-    hot_topics_data = [{
-        'id': topic.id,
-        'rank': topic.rank,
-        'title': topic.title,
-        'views': topic.views,
-        'isHot': topic.isHot
-    } for topic in hot_topics]
 
-    response_data = ResponseData(code=0, msg='Success', data=hot_topics_data)
-    return jsonify(response_data.__dict__)
 
-@app.route('/content/items', methods=['GET'])
-def get_items():
-    items = ItemModel.query.all()
-    items_data = [{'id': item.id, 'item': item.item} for item in items]
+@app.route('/user/data', methods=['GET'])
+def get_user_data():
+    token = request.args.get('token')
+    user = UserModel.query.filter_by(token=token).first()
+    if user:
+        user_data = {
+            'username': user.username,
+            'userphone': user.userphone,
+            'score': user.score,
+            'trueNumber': user.trueNumber,
+            'rate': user.rate
+        }
+        print(user_data)
+        response_data = ResponseData(code=0, msg='Answer submitted successfully', data=user_data)
+        return jsonify(response_data.__dict__),200
+    else:
+        response_data = ResponseData(code=1, msg='Invalid user')
+        return jsonify(response_data.__dict__),404
 
-    response_data = ResponseData(code=0, msg='Success', data=items_data)
-    return jsonify(response_data.__dict__)
 
-@app.route('/api/posts', methods=['GET'])
-def get_posts():
-    posts = PostModel.query.all()
-    post_list = [{'title': post.title, 'author': post.author, 'imageUrl': post.image_url} for post in posts]
-    response_data = ResponseData(code=0, msg='Success', data=post_list)
-    return jsonify(response_data.__dict__)
+@app.route('/api/users', methods=['GET'])
+def get_users():
+    try:
+        users = UserModel.query.all()
+        print(f"Fetched users: {users}")
+        
+        if not users:
+            print("No users found.")
+            response_data = ResponseData(code=1, msg='No users found', data=[])
+            return jsonify(response_data.__dict__), 404
+        
+        user_list = [{
+            'uid': user.uid,
+            'username': user.username,
+            'userphone': user.userphone,
+            'password': user.password,
+            'trueNumber': user.trueNumber,
+            'rate': user.rate
+        } for user in users]
+        
+        response_data = ResponseData(code=0, msg='Success', data=user_list)
+        return jsonify(response_data.__dict__), 200
+    
+    except Exception as e:
+        print(f"Error occurred: {e}")
+        response_data = ResponseData(code=1, msg='Internal server error', data=[])
+        return jsonify(response_data.__dict__), 500
 
-@app.route('/api/focus', methods=['GET'])
-def get_focus():
-    posts = FocusModel.query.all()
-    post_list = [{'title': post.title, 'author': post.author, 'imageUrl': post.image_url} for post in posts]
-    response_data = ResponseData(code=0, msg='Success', data=post_list)
-    return jsonify(response_data.__dict__)
-
-@app.route('/api/around', methods=['GET'])
-def get_around():
-    posts = AroundModel.query.all()
-    post_list = [{'title': post.title, 'author': post.author, 'imageUrl': post.image_url} for post in posts]
-    response_data = ResponseData(code=0, msg='Success', data=post_list)
-    return jsonify(response_data.__dict__)
-
-@app.route('/user/friends', methods=['GET'])
-def get_friends():
-    friends = FriendModel.query.all()
-    friends_data = [{'name': friend.name, 'description': friend.description, 'image': friend.image} for friend in friends]
-
-    response_data = ResponseData(code=0, msg='Success', data=friends_data)
-    return jsonify(response_data.__dict__)
 
 if __name__ == '__main__':
     with app.app_context():

@@ -1,0 +1,11 @@
+{
+  "src": [
+    "pages/Index",
+    "pages/Rank",
+    "pages/Personal",
+    "pages/Login",
+    "pages/Register",
+    "pages/Question",
+    "pages/Welcome"
+  ]
+}
