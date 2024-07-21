@@ -1,4 +1,4 @@
-# SCU_HarmonyOS_XHS
+# SCU_HarmonyOS_InteliQiz
 
 项目快速启动
 
