@@ -209,7 +209,7 @@ def answer_question():
         if answer == question.correct_option:
             user.trueNumber += 1
             user.score += 10
-            user.rate = user.score/100
+            user.rate = user.score
 
         db.session.commit()
 
